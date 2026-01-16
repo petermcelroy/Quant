@@ -1,0 +1,33 @@
+name: Update Domar Report
+
+on:
+  schedule:
+    - cron: '0 8 * * *' # Runs every day at 08:00 UTC
+  workflow_dispatch:      # Allows you to run it manually with one click
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pandas plotly pandas_datareader python-dotenv
+
+      - name: Run Report Generator
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: python report_gen.py
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
+          publish_filename: index.html # Rename your output to index.html for the web
