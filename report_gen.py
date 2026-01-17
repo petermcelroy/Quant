@@ -15,7 +15,7 @@ def generate_professional_report():
     summary_data = []
     detail_html = ""
 
-    # 1. HTML Header and Professional CSS Styling
+    # 1. HTML/CSS Boilerplate (Professional Engineering Standard)
     html_content = f"""
     <!DOCTYPE html>
     <html lang="en">
@@ -23,11 +23,11 @@ def generate_professional_report():
         <meta charset="UTF-8">
         <title>Domar Spread Sustainability Audit</title>
         <style>
-            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; background: #f0f2f5; color: #1c1e21; }}
+            body {{ font-family: 'Segoe UI', Arial, sans-serif; margin: 40px; background: #f0f2f5; color: #1c1e21; }}
             .card {{ background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 30px; border-left: 6px solid #004a99; }}
-            h1 {{ color: #004a99; margin-bottom: 10px; border-bottom: 2px solid #004a99; padding-bottom: 10px; }}
-            .timestamp {{ color: #606770; font-size: 0.9em; margin-bottom: 30px; }}
-            table {{ border-collapse: collapse; width: 100%; margin: 20px 0; background: white; }}
+            h1 {{ color: #004a99; border-bottom: 2px solid #004a99; padding-bottom: 10px; }}
+            .timestamp {{ color: #606770; font-size: 0.9em; margin-bottom: 20px; }}
+            table {{ border-collapse: collapse; width: 100%; margin-top: 10px; background: white; font-size: 14px; }}
             th {{ background-color: #004a99; color: white; padding: 15px; text-align: left; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }}
             td {{ padding: 14px 15px; border-bottom: 1px solid #eef0f2; }}
             .status-red {{ background-color: #ffebe9; color: #cf222e; font-weight: bold; padding: 6px 10px; border-radius: 6px; border: 1px solid #ffcfcc; }}
@@ -38,79 +38,66 @@ def generate_professional_report():
     </head>
     <body>
         <h1>Domar Sustainability Audit Dashboard</h1>
-        <div class="timestamp"><strong>System Audit Time:</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC</div>
+        <div class="timestamp"><strong>Audit Execution (UTC):</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}</div>
     """
 
-    # 2. Data Processing Loop
+    # 2. Data Retrieval and Audit Loop
     for country in countries:
         cfg = config.COUNTRY_CONFIG[country]
         try:
-            # Fetch raw data from FRED
+            # Fetch data with 2-year window to ensure growth calculation
             df_raw = web.DataReader([cfg["GDP_Real"], cfg['Rate_10Y']], 'fred', config.START_DATE, api_key=FRED_KEY)
             df_raw.columns = ['gdp', 'rate']
             
-            # Calculate Year-on-Year Real GDP Growth
+            # Growth (g): YoY % Change of Real GDP
             gdp_clean = df_raw['gdp'].dropna()
             g_growth = gdp_clean.pct_change(periods=4) * 100
             
-            # Identify the most recent available data points (Asynchronous)
-            latest_rate_idx = df_raw['rate'].last_valid_index()
-            latest_gdp_idx = g_growth.last_valid_index()
+            # Rate (i): Latest valid 10Y Yield
+            rate_clean = df_raw['rate'].dropna()
             
-            if latest_rate_idx is not None and latest_gdp_idx is not None:
-                val_i = df_raw['rate'].loc[latest_rate_idx]
-                val_g = g_growth.loc[latest_gdp_idx]
-                domar_spread = val_i - val_g
+            if not rate_clean.empty and not g_growth.dropna().empty:
+                # Get most recent values independently
+                latest_i = rate_clean.iloc[-1]
+                latest_i_date = rate_clean.index[-1]
+                
+                latest_g = g_growth.dropna().iloc[-1]
+                latest_g_date = g_growth.dropna().index[-1]
+                
+                spread = latest_i - latest_g
 
-                # Populate Summary Data
+                # Populate Summary
                 summary_data.append({
                     'Country': country,
-                    'i': val_i,
-                    'i_date': latest_rate_idx.strftime('%Y-%m-%d'),
-                    'g': val_g,
-                    'g_date': latest_gdp_idx.strftime('%Y-%m-%d'),
-                    'spread': domar_spread
+                    'i': round(latest_i, 3),
+                    'i_date': latest_i_date.strftime('%Y-%m-%d'),
+                    'g': round(latest_g, 3),
+                    'g_date': latest_g_date.strftime('%Y-%m-%d'),
+                    'Domar_Spread': round(spread, 3)
                 })
 
-                # 3. Generate Historical Trend Chart
-                # Use reindexing to align values for the historical line
+                # 3. Create Trend Chart
                 df_hist = pd.DataFrame(index=df_raw.index)
                 df_hist['spread'] = df_raw['rate'].ffill() - g_growth.reindex(df_raw.index, method='ffill')
                 df_hist = df_hist.dropna()
 
                 fig = go.Figure()
-                fig.add_trace(go.Scatter(
-                    x=df_hist.index, 
-                    y=df_hist['spread'], 
-                    name="Domar Spread", 
-                    fill='tozeroy', 
-                    line=dict(color='#004a99', width=2)
-                ))
-                fig.update_layout(
-                    title=f"{country}: Historical Sustainability Trend (i - g)",
-                    xaxis_title="Date",
-                    yaxis_title="Spread %",
-                    template="plotly_white",
-                    height=350,
-                    margin=dict(l=20, r=20, t=50, b=20)
-                )
-                
-                detail_html += f"<div class='card'><h2>{country} Technical Detail</h2>"
-                detail_html += fig.to_html(full_html=False, include_plotlyjs='cdn')
-                detail_html += "</div>"
+                fig.add_trace(go.Scatter(x=df_hist.index, y=df_hist['spread'], fill='tozeroy', line=dict(color='#004a99')))
+                fig.update_layout(title=f"{country} Historical Spread (i - g)", template="plotly_white", height=300)
+                detail_html += f"<div class='card'><h2>{country} Technical Analysis</h2>" + fig.to_html(full_html=False, include_plotlyjs='cdn') + "</div>"
 
         except Exception as e:
-            print(f"FAILED TO AUDIT {country}: {str(e)}")
+            print(f"AUDIT FAILURE FOR {country}: {e}")
 
-    # 4. Build Live Summary Table
+    # 4. Summary Table Generation
     table_html = """
     <div class='card'>
-        <h2>Live Domar Status (Summary)</h2>
+        <h2>Live Domar Status Summary</h2>
         <table>
             <thead>
                 <tr>
                     <th>Country</th>
-                    <th>10Y Yield (i)</th>
+                    <th>10Y Rate (i)</th>
                     <th>Real GDP Growth (g)</th>
                     <th>Domar Spread (i - g)</th>
                 </tr>
@@ -119,21 +106,24 @@ def generate_professional_report():
     """
 
     for item in summary_data:
-        # LOGIC: Positive Spread = RED (Risk), Negative Spread = GREEN (Sustainable)
-        color_class = "status-red" if item['spread'] > 0 else "status-green"
+        # LOGIC: i - g > 0 is RED (Unsustainable Debt Trend)
+        color_class = "status-red" if item['Domar_Spread'] > 0 else "status-green"
         
         table_html += f"""
             <tr>
                 <td class="country-name">{item['Country']}</td>
-                <td>{item['i']:.2f}%<span class="date-label">Obs: {item['i_date']}</span></td>
-                <td>{item['g']:.2f}%<span class="date-label">Ref: {item['g_date']}</span></td>
-                <td><span class="{color_class}">{item['spread']:.2f}%</span></td>
+                <td>{item['i']}%<span class="date-label">Obs: {item['i_date']}</span></td>
+                <td>{item['g']}%<span class="date-label">Ref: {item['g_date']}</span></td>
+                <td><span class="{color_class}">{item['Domar_Spread']}%</span></td>
             </tr>
         """
     
     table_html += "</tbody></table></div>"
 
-    # 5. Final File Assembly
+    # 5. CSV and File Finalization
+    if summary_data:
+        pd.DataFrame(summary_data).to_csv("domar_audit.csv", index=False)
+
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html_content + table_html + detail_html + "</body></html>")
 
