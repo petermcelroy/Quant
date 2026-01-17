@@ -1,16 +1,14 @@
 # config.py
-# List of countries for the Domar Sustainability Audit
 COUNTRIES = ["USA", "Eurozone", "Japan", "China"]
 
-# FRED Tickers for Real GDP and 10-Year Government Bond Yields
 COUNTRY_CONFIG = {
     "USA": {
         "GDP_Real": "GDPC1",        # Real GDP (Billions of Chained 2017 Dollars)
-        "Rate_10Y": "DGS10"         # Market Yield on U.S. Treasury Securities at 10-Year
+        "Rate_10Y": "DGS10"         # 10-Year Treasury Yield
     },
     "Eurozone": {
-        "GDP_Real": "NGDPRSAXDCEZQ", # Real GDP for Euro Area (19-20 countries)
-        "Rate_10Y": "IRLTLT01EZM156N" # 10-Year Gov Bond Yield for Euro Area
+        "GDP_Real": "NGDPRSAXDCEZQ", # Real GDP for Euro Area
+        "Rate_10Y": "IRLTLT01EZM156N" # 10-Year Gov Bond Yield (Benchmark)
     },
     "Japan": {
         "GDP_Real": "NGDPRSAXDCJPQ",  # Real GDP for Japan
