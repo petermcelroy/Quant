@@ -2,12 +2,19 @@ name: Update Domar Report
 
 on:
   schedule:
-    - cron: '0 8 * * *' # Runs every day at 08:00 UTC
-  workflow_dispatch:      # Allows you to run it manually with one click
+    - cron: '0 8 * * *' # Runs daily at 08:00 UTC
+  workflow_dispatch:      # Allows you to click "Run workflow" manually
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    
+    # These permissions are mandatory for the script to "write" the website branch
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -18,7 +25,8 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install pandas plotly pandas_datareader python-dotenv
+        run: |
+          pip install pandas plotly pandas_datareader python-dotenv
 
       - name: Run Report Generator
         env:
@@ -30,4 +38,6 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./
-          publish_filename: index.html # Rename your output to index.html for the web
+          # Change the line below to your custom domain if ready, 
+          # otherwise leave it commented out with a #
+          # cname: domar.yourdomain.com

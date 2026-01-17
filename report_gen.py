@@ -66,10 +66,10 @@ def generate_professional_report():
     )
     
     # 3. Save to Standalone HTML
-    output_path = "Domar_Sustainability_Report.html"
+    output_path = "index.html"
     fig.write_html(output_path, include_plotlyjs=True)
-    print(f"\n✅ SUCCESS: Report created at {os.path.abspath(output_path)}")
+        
+    print(f"✅ Website file generated: {output_path}")
 
 if __name__ == "__main__":
     generate_professional_report()
-    
